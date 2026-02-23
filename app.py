@@ -33,7 +33,11 @@ TARGET_CARS = [
     "lamborghini", # Added correct spelling just in case
     "ferrari",
     "gordon murray",
-    "rapid"
+    "batman"
+    "Batmobile"
+    "barbie"
+    "datsun"
+    "pagani"
 ]
 
 def send_alert(message):
