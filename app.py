@@ -23,9 +23,9 @@ URLS = [
 TARGET_CARS = [
     "porsche", "bmw", "audi", "mercedes", "ford", 
     "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", 
-    "premium", "toyota", "lamborgini", "lamborghini", "rapid",
+    "premium", "toyota", "lamborgini", "lamborghini",
     "ferrari", "gordon murray", "barbie", "batman", 
-    "batmobile", "datsun", "pagani"
+    "batmobile", "datsun", "pagani", "mclaren"
 ]
 
 # 🎭 THE DISGUISE CLOSET
