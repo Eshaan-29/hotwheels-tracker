@@ -12,8 +12,11 @@ TOKEN = os.environ.get("TWILIO_TOKEN")
 FROM_NUM = os.environ.get("TWILIO_FROM")
 TO_NUM = os.environ.get("YOUR_PHONE")
 
-URL = "https://www.firstcry.com/hotwheels/5/0/113?sort=NewArrivals" 
-
+# 🕸️ CASTING A WIDER NET: We now check both pages!
+URLS = [
+    "https://www.firstcry.com/hotwheels/5/0/113?sort=NewArrivals", # Catches brand new drops
+    "https://www.firstcry.com/hotwheels/5/0/113"                   # Catches popular restocks on main page
+]
 TARGET_CARS = [
     "porsche", "bmw", "audi", "mercedes", "ford", 
     "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", 
