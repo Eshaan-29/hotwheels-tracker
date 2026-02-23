@@ -1,0 +1,42 @@
+name: Hot Wheels Tracker
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: 
+
+jobs:
+  check-stock:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Grab the code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install required packages
+        # Notice we added 'twilio' to the end of this line!
+        run: pip install requests beautifulsoup4 twilio
+
+      - name: Run the Tracker
+        # We map the new Twilio secrets here
+        env:
+          TWILIO_SID: ${{ secrets.TWILIO_SID }}
+          TWILIO_TOKEN: ${{ secrets.TWILIO_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          YOUR_PHONE: ${{ secrets.YOUR_PHONE }}
+        run: python tracker.py
+
+      - name: Save the state
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add last_seen.txt
+          git commit -m "Updated last seen Hot Wheels" || exit 0
+          git push
