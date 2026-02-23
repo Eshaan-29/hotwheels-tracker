@@ -20,7 +20,7 @@ URLS = [
 TARGET_CARS = [
     "porsche", "bmw", "audi", "mercedes", "ford", 
     "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", 
-    "premium", "toyota", "lamborgini", "lamborghini", 
+    "premium", "toyota", "lamborgini", "lamborghini","rapid"
     "ferrari", "gordon murray", "barbie","batmam","batmobile","datsun","pagani"
 ]
 
