@@ -12,19 +12,17 @@ TOKEN = os.environ.get("TWILIO_TOKEN")
 FROM_NUM = os.environ.get("TWILIO_FROM")
 TO_NUM = os.environ.get("YOUR_PHONE")
 
-# Base URLs (We will automatically attach page numbers to these)
 URLS = [
     "https://www.firstcry.com/hotwheels/5/0/113?sort=NewArrivals", 
     "https://www.firstcry.com/hotwheels/5/0/113?sort=Bestseller"                   
 ]
 
-# 🎯 YOUR EXPANDED & SPELL-PROOF WISHLIST
 TARGET_CARS = [
     "porsche", "bmw", "audi", "mercedes", "ford", 
-    "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", "formula 1", "formula one",
-    "premium", "toyota", "lamborgini", "lamborghini", "rapid",
-    "ferrari", "gordon murray", "barbie", "batman", "batmam", 
-    "batmobile", "datsun", "pagani", "mclaren", "mc laren", "futurismo", "formula"
+    "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", 
+    "premium", "toyota", "lamborgini", "lamborghini",
+    "ferrari", "gordon murray", "barbie", "batman", 
+    "batmobile", "datsun", "pagani", "mclaren", "futurismo", "formula"
 ]
 
 USER_AGENTS = [
@@ -58,11 +56,9 @@ def check_stock():
             "Connection": "keep-alive"
         }
         
-        # Loop through BOTH links
         for base_url in URLS:
-            # 🚀 DEEP SCAN: Check Page 1, Page 2, and Page 3
-            for page in range(1, 4):
-                # Attach the page number to FirstCry's URL
+            # 🚀 DEEP SCAN INCREASED: Now checking Pages 1 through 6
+            for page in range(1, 7):
                 url = f"{base_url}&pageno={page}"
                 
                 response = requests.get(url, headers=headers, timeout=10)
@@ -72,8 +68,10 @@ def check_stock():
                 items_scanned += len(product_blocks)
                 
                 for block in product_blocks:
-                    # Ignore Out of Stock cars entirely
-                    if block.get('data-outstock') == 'true':
+                    # 🛑 THE NEW BULLETPROOF STOCK CHECK: 
+                    # We grab all text in the box. If "ADD TO CART" isn't there, it's dead.
+                    block_text = block.get_text().upper()
+                    if "ADD TO CART" not in block_text:
                         continue 
                     
                     title_div = block.find('div', class_='li_txt1')
@@ -95,7 +93,6 @@ def check_stock():
                                         alerts_sent += 1
                                     break 
         
-        # Save memory
         with open("alerted.txt", "w") as f:
             for item in already_alerted:
                 f.write(f"{item}\n")
@@ -103,7 +100,7 @@ def check_stock():
         if alerts_sent > 0:
             return f"Deep scan complete! Scanned {items_scanned} items. Found {alerts_sent} IN STOCK wishlist items.", 200
         else:
-            return f"Deep scan complete safely. Scanned {items_scanned} items across 3 pages. No new wishlist items found.", 200
+            return f"Deep scan complete safely. Scanned {items_scanned} items across 6 pages. No new wishlist items found.", 200
 
     except Exception as e:
         return f"Error checking FirstCry: {e}", 500
