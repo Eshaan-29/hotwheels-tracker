@@ -20,9 +20,9 @@ URLS = [
 TARGET_CARS = [
     "porsche", "bmw", "audi", "mercedes", "ford", 
     "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", 
-    "premium", "toyota", "lamborgini", "lamborghini",
-    "ferrari", "gordon murray", "barbie", "batman", 
-    "batmobile", "datsun", "pagani", "mclaren", "futurismo", "formula"
+    "premium", "toyota", "lamborgini", "lamborghini", "rapid",
+    "ferrari", "gordon murray", "barbie", "batman", "batmam", 
+    "batmobile", "datsun", "pagani", "mclaren", "mc laren", "futurismo", "formula"
 ]
 
 USER_AGENTS = [
@@ -57,9 +57,10 @@ def check_stock():
         }
         
         for base_url in URLS:
-            # 🚀 DEEP SCAN INCREASED: Now checking Pages 1 through 6
             for page in range(1, 7):
-                url = f"{base_url}&pageno={page}"
+                # 🛡️ CACHE BUSTING: Add a random number to trick FirstCry's servers
+                cache_buster = random.randint(100000, 999999)
+                url = f"{base_url}&pageno={page}&nocache={cache_buster}"
                 
                 response = requests.get(url, headers=headers, timeout=10)
                 soup = BeautifulSoup(response.text, 'html.parser')
@@ -68,10 +69,8 @@ def check_stock():
                 items_scanned += len(product_blocks)
                 
                 for block in product_blocks:
-                    # 🛑 THE NEW BULLETPROOF STOCK CHECK: 
-                    # We grab all text in the box. If "ADD TO CART" isn't there, it's dead.
-                    block_text = block.get_text().upper()
-                    if "ADD TO CART" not in block_text:
+                    # Initial quick filter
+                    if block.get('data-outstock') == 'true':
                         continue 
                     
                     title_div = block.find('div', class_='li_txt1')
@@ -88,19 +87,34 @@ def check_stock():
                             for target in TARGET_CARS:
                                 if target in title_lower:
                                     if full_title not in already_alerted:
-                                        send_alert(f"🚨 IN STOCK NOW!\nMatched: '{target.upper()}'\nItem: {full_title}\nLink: {link}")
-                                        already_alerted.append(full_title)
-                                        alerts_sent += 1
-                                    break 
+                                        
+                                        # 🛑 DOUBLE VERIFICATION: Open the product page!
+                                        try:
+                                            prod_resp = requests.get(link, headers=headers, timeout=10)
+                                            prod_text = BeautifulSoup(prod_resp.text, 'html.parser').get_text().upper()
+                                            
+                                            # If it says Notify Me or Out of Stock, it's a ghost item. Skip it.
+                                            if "NOTIFY ME" in prod_text or "OUT OF STOCK" in prod_text:
+                                                break # Move on to the next car
+                                                
+                                            # If we pass the check, SEND THE ALERT!
+                                            send_alert(f"🚨 CONFIRMED IN STOCK!\nMatched: '{target.upper()}'\nItem: {full_title}\nLink: {link}")
+                                            already_alerted.append(full_title)
+                                            alerts_sent += 1
+                                            
+                                        except Exception as e:
+                                            print(f"Failed to verify {full_title}: {e}")
+                                            
+                                    break # Stop checking keywords for this car once we found a match
         
         with open("alerted.txt", "w") as f:
             for item in already_alerted:
                 f.write(f"{item}\n")
                 
         if alerts_sent > 0:
-            return f"Deep scan complete! Scanned {items_scanned} items. Found {alerts_sent} IN STOCK wishlist items.", 200
+            return f"Deep scan complete! Scanned {items_scanned} items. Found {alerts_sent} CONFIRMED IN STOCK wishlist items.", 200
         else:
-            return f"Deep scan complete safely. Scanned {items_scanned} items across 6 pages. No new wishlist items found.", 200
+            return f"Deep scan complete safely. Scanned {items_scanned} items across 6 pages. No new CONFIRMED items.", 200
 
     except Exception as e:
         return f"Error checking FirstCry: {e}", 500
