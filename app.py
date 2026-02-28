@@ -1,5 +1,6 @@
 import os
 import random
+import urllib.parse
 import requests
 from bs4 import BeautifulSoup
 from twilio.rest import Client
@@ -11,11 +12,6 @@ SID = os.environ.get("TWILIO_SID")
 TOKEN = os.environ.get("TWILIO_TOKEN")
 FROM_NUM = os.environ.get("TWILIO_FROM")
 TO_NUM = os.environ.get("YOUR_PHONE")
-
-URLS = [
-    "https://www.firstcry.com/hotwheels/5/0/113?sort=NewArrivals", 
-    "https://www.firstcry.com/hotwheels/5/0/113?sort=Bestseller"                   
-]
 
 TARGET_CARS = [
     "porsche", "bmw", "audi", "mercedes", "ford", 
@@ -46,71 +42,64 @@ def check_stock():
                 already_alerted = f.read().splitlines()
                 
         alerts_sent = 0
-        items_scanned = 0
         random_agent = random.choice(USER_AGENTS)
         
         headers = {
             "User-Agent": random_agent,
             "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             "Connection": "keep-alive"
         }
         
-        for base_url in URLS:
-            for page in range(1, 7):
-                cache_buster = random.randint(100000, 999999)
-                url = f"{base_url}&pageno={page}&nocache={cache_buster}"
-                
-                response = requests.get(url, headers=headers, timeout=10)
-                soup = BeautifulSoup(response.text, 'html.parser')
-                
-                product_blocks = soup.find_all('div', class_='list_block') 
-                items_scanned += len(product_blocks)
-                
-                for block in product_blocks:
-                    # 🛑 WE DELETED THE LIAR CODE! The bot no longer trusts data-outstock.
+        # 🎯 DIRECT SEARCH: Loop through your wishlist and search them directly
+        for target in TARGET_CARS:
+            # Type the car name directly into FirstCry's search URL
+            search_query = urllib.parse.quote(f"hot wheels {target}")
+            search_url = f"https://www.firstcry.com/searchresult?q={search_query}"
+            
+            response = requests.get(search_url, headers=headers, timeout=10)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Grab only the top 3 results from the search to be fast
+            products = soup.find_all('div', class_='li_txt1')[:3] 
+            
+            for p in products:
+                a_tag = p.find('a')
+                if a_tag:
+                    full_title = a_tag.get('title').strip()
+                    title_lower = full_title.lower()
                     
-                    title_div = block.find('div', class_='li_txt1')
-                    if title_div:
-                        a_tag = title_div.find('a')
-                        if a_tag:
-                            full_title = a_tag.get('title').strip()
-                            title_lower = full_title.lower()
+                    link = a_tag.get('href')
+                    if not link.startswith("http"):
+                        link = "https://www.firstcry.com" + link
+                    
+                    # Ensure the result actually matches our target
+                    if target in title_lower:
+                        if full_title not in already_alerted:
                             
-                            link = a_tag.get('href')
-                            if not link.startswith("http"):
-                                link = "https://www.firstcry.com" + link
-                            
-                            for target in TARGET_CARS:
-                                if target in title_lower:
-                                    if full_title not in already_alerted:
-                                        
-                                        # DOUBLE VERIFICATION: Check the actual product page directly
-                                        try:
-                                            prod_resp = requests.get(link, headers=headers, timeout=10)
-                                            prod_text = BeautifulSoup(prod_resp.text, 'html.parser').get_text().upper()
-                                            
-                                            if "NOTIFY ME" in prod_text or "OUT OF STOCK" in prod_text:
-                                                break # It's a ghost item. Move on.
-                                                
-                                            # It's a real drop! SEND THE ALERT!
-                                            send_alert(f"🚨 CONFIRMED IN STOCK!\nMatched: '{target.upper()}'\nItem: {full_title}\nLink: {link}")
-                                            already_alerted.append(full_title)
-                                            alerts_sent += 1
-                                            
-                                        except Exception as e:
-                                            print(f"Failed to verify {full_title}: {e}")
-                                            
-                                    break 
+                            # 🛑 THE GOOGLE SEO BYPASS: Open the product page
+                            try:
+                                prod_resp = requests.get(link, headers=headers, timeout=10)
+                                
+                                # Check FirstCry's hidden Google SEO data for the real stock status!
+                                if "schema.org/InStock" in prod_resp.text:
+                                    send_alert(f"🚨 REAL RESTOCK CONFIRMED!\nMatched: '{target.upper()}'\nItem: {full_title}\nLink: {link}")
+                                    already_alerted.append(full_title)
+                                    alerts_sent += 1
+                                    
+                            except Exception as e:
+                                print(f"Failed to verify {full_title}: {e}")
+                        
+                        # Stop checking if we found a match for this specific target
+                        break 
         
         with open("alerted.txt", "w") as f:
             for item in already_alerted:
                 f.write(f"{item}\n")
                 
         if alerts_sent > 0:
-            return f"Deep scan complete! Scanned {items_scanned} items. Found {alerts_sent} CONFIRMED IN STOCK wishlist items.", 200
+            return f"Sniper Search complete! Found {alerts_sent} CONFIRMED IN STOCK wishlist items.", 200
         else:
-            return f"Deep scan complete safely. Scanned {items_scanned} items across 6 pages. No new CONFIRMED items.", 200
+            return f"Sniper Search complete. No real in-stock items found.", 200
 
     except Exception as e:
         return f"Error checking FirstCry: {e}", 500
