@@ -25,7 +25,7 @@ TARGET_CARS = [
     "mcmurthy", "mcmurtry", "nissan", "mazda", "f1", 
     "premium", "toyota", "lamborgini", "lamborghini",
     "ferrari", "gordon murray", "barbie", "batman", 
-    "batmobile", "datsun", "pagani", "mclaren","futurismo"
+    "batmobile", "datsun", "pagani", "mclaren","Futurismo"
 ]
 
 # 🎭 THE DISGUISE CLOSET
